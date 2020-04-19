@@ -9,11 +9,12 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-* [Usage](#usage)
-* [.vmix Config File](#vmix-config-file)
-* [Requirements: ffmpeg](#requirements-ffmpeg)
-* [Why I built this](#why-i-built-this)
-* [Background](#background)
+- [vmix](#vmix)
+- [Usage](#usage)
+- [.vmix Config File](#vmix-config-file)
+- [Requirements: ffmpeg](#requirements-ffmpeg)
+- [Why I built this](#why-i-built-this)
+- [Background](#background)
 <!-- tocstop -->
 # Usage
 Make sure you install ffmpeg: 
@@ -98,3 +99,5 @@ ffmpeg -i edv_g24_2.mp4 -i short-video.mp4 -filter_complex "\
 [v0][a0][v1][a1][v2][a2]concat=n=3:v=1:a=1[outv][outa]" \
 -map "[outv]" -map "[outa]" output.mp4
 ```
+
+This utility simply generates the above syntax, from a simple configuration file format
