@@ -9,6 +9,7 @@ const fs = require('fs')
 
 interface ConfigFileRow {
   filename: string;
+  outputFilename?: string;
   index: number;
   timeframes: TimeFrame[];
 }
@@ -33,6 +34,10 @@ class VMix extends Command {
     debugCommand: flags.boolean({description: 'output command logs, do not execute ffmpeg', default: false}),
     copyOnly: flags.boolean({description: 'do not re-encode, only copy the streams (lossless)', default: false}),
   }
+
+  public outputFileSuffix = '.cut.h264.mp4'
+
+  public fileOverridePlaceholder = '[delete me to override with your own filename (including brackets)]'
 
   public debugCommand = false
 
@@ -67,13 +72,18 @@ class VMix extends Command {
       this.log(clc.green('File parse successful'))
 
       // generate the ffmpeg commands
-      const commands = this.generateFfmpegCmd(jsonConfig)
-      if (this.debugCommand) this.log('commands', commands)
+      const [ffmpegCommands, exifCommands] = this.generateExecCommands(jsonConfig)
+      if (this.debugCommand) this.log('commands', {ffmpegCommands, exifCommands})
 
       // pass the commands into exec
       if (!this.debugCommand) {
-        await Bluebird.each(commands, async (command: Array<string[]>) => {
-          await this.execFfmpegAsync(command)
+        // generate iterator
+        const iterator = []
+        for (let i = 0; i < ffmpegCommands.length; i++) iterator.push(i)
+
+        await Bluebird.each(iterator, async (i: number) => {
+          await this.execAsync('ffmpeg', ffmpegCommands[i])
+          await this.execAsync('exiftool', exifCommands[i])
         })
       }
     } catch (error) {
@@ -85,28 +95,41 @@ class VMix extends Command {
     this.log(clc.green('Creating .vmix config file'))
     try {
       const existingConfig = fs.readFileSync(`${process.cwd()}/.vmix`, 'utf8')
-      this.log('existingConfig', existingConfig)
+
       if (existingConfig) {
-        this.error('.vmix config file already exists')
+        this.log(clc.red('.vmix config file already exists'))
         return
       }
     } catch (error) {
-      // do nothing
+      return
     }
 
+    this.log('4')
     fs.readdir(process.cwd(), (err: Error, files: Array<string>) => {
+      this.log('5')
       if (err) {
+        this.log('6')
         this.error('invalid folder')
       }
+      this.log('7')
       const filteredFiles = this._filterValidFiles(files)
-      const lines: Array<string> = []
+      const timecodes: Array<string> = [':timecodes']
+      const groupFilenames: Array<string> = [':groupFilenames']
+
       _.forEach(filteredFiles, (file: string, idx: number) => {
-        lines.push(`${idx} ; ${file} ; ["0:00","0:00"] ; ["0:00","0:00"] ; ["0:00","0:00"]`)
+        timecodes.push(`${idx} ; ${file} ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00]`)
+        groupFilenames.push(`${idx} ; ${this.fileOverridePlaceholder}`)
       })
 
+      const lines = [...timecodes, ...groupFilenames]
+
+      this.log('8')
       fs.writeFile(`${process.cwd()}/.vmix`, lines.join('\n'), (err: Error) => {
-        if (err) this.error(err)
-        this.log(clc.green('Created init file .vmix with the following files', filteredFiles))
+        if (err) {
+          this.error(err)
+        } else {
+          this.log(clc.green('Created init file .vmix with the following files', filteredFiles))
+        }
       })
     })
   }
@@ -139,9 +162,11 @@ class VMix extends Command {
    * @param {Array.<object>} configs - Config File Row
    * @returns {Array.string[]} - command params
    */
-  generateFfmpegCmd(configs: ConfigFileRow[]) {
+  generateExecCommands(configs: ConfigFileRow[]) {
     // init variables
     const commands: Array<string[]> = []
+    const exifCommands: Array<string[]> = []
+
     let encodingParam = '-x265-params crf=25'
     if (this.copyOnly) encodingParam = '-c:v copy'
 
@@ -160,24 +185,29 @@ class VMix extends Command {
 
       const [finalFilterStr, outputFilename] = this._getComplexFilterStrings(configs)
 
-      // assemble the final command string
-      const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${outputFilename}"`, `${encodingParam}`]
+      // see if there's an override filename defined on the group level
+      const overrideFilename = _.get(configs[0], 'outputFilename')
+      const finalOutputFilename = overrideFilename ? `${overrideFilename}.mp4` : `${outputFilename}${this.outputFileSuffix}`
 
-      const fileExistPath = `${outputFilename}`
+      // assemble the final command string
+      const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${finalOutputFilename}"`, `${encodingParam}`]
+
+      const fileExistPath = `${finalOutputFilename}`
       if (fs.existsSync(`${fileExistPath}`)) {
-        this.warn(clc.red(`Skipping file ${outputFilename}, because it already exists`))
+        this.warn(clc.red(`Skipping file ${finalOutputFilename}, because it already exists`))
       } else {
         commands.push(commandDao)
+        exifCommands.push([`-tagsFromFile "${configs[0].filename}"`, `-CreateDate "${finalOutputFilename}"`, '-overwrite_original'])
       }
     })
 
-    return commands
+    return [commands, exifCommands]
   }
 
-  async execFfmpegAsync(command: Array<string[]>): Promise<void> {
+  async execAsync(command: string, params: string[]): Promise<void> {
     return new Bluebird((resolve: any) => {
-      this.log(clc.green('Executing command', `ffmpeg ${command.join(' ')}`))
-      const proc = spawn('ffmpeg', command, {
+      this.log(clc.green('Executing command', `${command} ${params.join(' ')}`))
+      const proc = spawn(command, params, {
         shell: true,
       })
 
@@ -237,39 +267,88 @@ class VMix extends Command {
 
     // parses the raw jsonArray to key/value Json
     const output = [] as ConfigFileRow[]
+    let parseType = ''
+
     _.forEach(jsonArray, (row: any) => {
-      const dao: ConfigFileRow = {
+      const timecodeDao: ConfigFileRow = {
         filename: '',
         index: 0,
         timeframes: [],
       }
+
       _.forEach(row, (col: string, idx: number) => {
+        // for each row, looping through each column
+        col = _.trim(col)
         if (idx === 0) {
-          dao.index = parseInt(col, 10)
-          if (_.isNaN(dao.index)) throw new Error('parse file error: your first column is a valid integer index (e.g. 0, 1, etc)')
-        }
-
-        if (idx === 1) dao.filename = col
-
-        if (idx > 1) {
-          try {
-            const timeFrameSplit = JSON.parse(col)
-            dao.timeframes.push({
-              start: _.trim(timeFrameSplit[0]),
-              end: _.trim(timeFrameSplit[1]),
-            })
-          } catch (error) {
-            throw new Error('parse file error: make sure your time codes are quoted individually, e.g. ["0", "0:30"]')
+          // check for the parseType :timecodes or :groupFilenames,
+          // and set the parseType accordingly
+          if (col === ':timecodes') {
+            parseType = 'timecodes'
+            return true // continue to next line
+          }
+          if (col === ':groupFilenames') {
+            parseType = 'groupFilenames'
+            return true // continue to next line
           }
         }
+
+        // based on the parseType, pass it into the appropriate parser
+        if (parseType === 'timecodes') {
+          this._parseTimecodes(col, idx, timecodeDao)
+        }
+
+        if (parseType === 'groupFilenames') this._parseGroupFilenames(row, col, idx, output)
       })
-      output.push(dao)
+
+      if (!_.isEmpty(timecodeDao.filename) && parseType === 'timecodes') {
+        output.push(timecodeDao)
+      }
     })
 
     if (this.debugCommand) {
       this.log(clc.green('JSON Parsed'), clc.green(JSON.stringify(output, null, 4)))
     }
     return output
+  }
+
+  _parseTimecodes(col: string, idx: number, configRow: ConfigFileRow) {
+    if (idx === 0) configRow.index = parseInt(col, 10)
+    if (idx === 1) configRow.filename = col
+
+    if (idx > 1) {
+      try {
+        const timeFrameSplit = _.split(col, ',')
+        configRow.timeframes.push({
+          start: _.trim(timeFrameSplit[0]),
+          end: _.trim(timeFrameSplit[1]),
+        })
+      } catch (error) {
+        throw new Error('parse file error: make sure your time codes are quoted individually, e.g. ["0", "0:30"]')
+      }
+    }
+  }
+
+  /**
+   * If available, grab the file name per the group index, and apply it to the
+   * correct index on the ConfigFileRow[] array
+   * @param {object} row - th efull row object
+   * @param {string} col - col value
+   * @param {object} idx - col index
+   * @param {ConfigFileRow[]} configRows full config array
+   * @returns {void}
+   */
+  _parseGroupFilenames(row: string[], col: string, idx: number, configRows: ConfigFileRow[]) {
+    if (idx === 0) {
+      // the 0th column index is the "index" value.  Use that index to find the cooresponding
+      // record on the ConfigFileRow[] array, and add the outputFilename key;
+      // The outputFilename is defined as the second column in the row
+      const configIndexMatches = _.filter(configRows, {index: parseInt(col, 10)})
+      if (configIndexMatches.length > 0) {
+        const groupFilename = _.trim(row[1])
+        if (groupFilename !== this.fileOverridePlaceholder)
+        configIndexMatches[0].outputFilename = groupFilename
+      }
+    }
   }
 
   _getInputParams(configs: ConfigFileRow[]): string[] {
@@ -309,7 +388,7 @@ class VMix extends Command {
       const fileExt = _.last(row.filename.split('.'))
 
       // remove file ext
-      const filename = row.filename.replace(fileExt, '')
+      const filename = row.filename.replace(`.${fileExt}`, '')
       outputFilename += `${filename}`
 
       // generate the trim syntax
@@ -334,8 +413,6 @@ class VMix extends Command {
     })
 
     const finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
-    outputFilename += 'cut.h264.mp4'
-
     return [finalFilterStr, outputFilename]
   }
 }
