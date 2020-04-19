@@ -9,13 +9,12 @@ Trims and concatenates multiple video files together, using **ffmpeg** and an ea
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [vmix](#vmix)
-- [Why I built this](#why-i-built-this)
-- [Background](#background)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [.vmix Config File](#vmix-config-file)
-- [Requirements: ffmpeg](#requirements-ffmpeg)
+* [Why I built this](#why-i-built-this)
+* [Background](#background)
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [.vmix Config File](#vmix-config-file)
+* [Requirements: ffmpeg](#requirements-ffmpeg)
 <!-- tocstop -->
 
 # Why I built this
@@ -74,7 +73,7 @@ $ npm install -g vid-mixer
 $ vmix COMMAND
 running command...
 $ vmix (-v|--version|version)
-vid-mixer/0.2.1 win32-x64 node-v10.15.0
+vid-mixer/0.2.2 win32-x64 node-v10.15.0
 $ vmix --help [COMMAND]
 USAGE
   $ vmix COMMAND
@@ -107,4 +106,3 @@ Here is an example of the .vmix file used as a configuration, for chopping and r
 This package assumes you have access to **ffmpeg** from your commmand line.
 
 Type **ffmpeg -h** from a terminal, and make sure it exists.  Otherwise, follow instructions to install ffmpeg from google
-
