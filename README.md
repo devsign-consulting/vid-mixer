@@ -17,6 +17,8 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 - [Background](#background)
 <!-- tocstop -->
 # Usage
+Make sure you install ffmpeg: 
+https://www.ffmpeg.org/download.html, and that the executable "ffmpeg" works from the command line.  Then, perform the following install steps
 <!-- usage -->
 ```sh-session
 $ npm install -g vid-mixer
