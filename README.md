@@ -9,12 +9,13 @@ Trims and concatenates multiple video files together, using **ffmpeg** and an ea
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-* [Why I built this](#why-i-built-this)
-* [Background](#background)
-* [Prerequisites](#prerequisites)
-* [Installation](#installation)
-* [.vmix Config File](#vmix-config-file)
-* [Requirements: ffmpeg](#requirements-ffmpeg)
+- [vmix](#vmix)
+- [Why I built this](#why-i-built-this)
+- [Background](#background)
+- [Prerequisites](#prerequisites)
+- [Installation and Usage](#installation-and-usage)
+- [.vmix Config File](#vmix-config-file)
+- [Requirements: ffmpeg](#requirements-ffmpeg)
 <!-- tocstop -->
 
 # Why I built this
@@ -64,22 +65,19 @@ Make sure you install **ffmpeg** and **exiftool**:
 * https://www.ffmpeg.org/download.html - executable "ffmpeg" should work from the command line.
 * https://exiftool.org/ - executable "exiftool" should work from the command line.  This is used to restore the EXIF created date of the media file upon conversion
 
-# Installation
-
-
-<!-- usage -->
+# Installation and Usage
 ```sh-session
 $ npm install -g vid-mixer
-$ vmix COMMAND
-running command...
-$ vmix (-v|--version|version)
-vid-mixer/0.2.2 win32-x64 node-v10.15.0
-$ vmix --help [COMMAND]
-USAGE
-  $ vmix COMMAND
-...
-```
-<!-- usagestop -->
+$ cd /into-folder-with-mp4-files/
+
+$ vmix --init
+creates **.vmix** config file in the working folder
+use text editor to edit file
+
+$ vmix
+Cuts and concatenates video files based on the .vmix config (see below)
+````
+
 # .vmix Config File
 Here is an example of the .vmix file used as a configuration, for chopping and re-stitching videos
 ```
