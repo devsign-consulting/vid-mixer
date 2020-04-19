@@ -29,10 +29,16 @@ class VMix extends Command {
     help: flags.help({char: 'h'}),
     input: flags.string({char: 'i', description: 'input config file'}),
     init: flags.boolean({description: 'generate config file, with all files in folder', default: false}),
+    group: flags.string({description: 'pass in a group number (e.g. 1, 2, 3, etc) to only process that group'}),
     debugCommand: flags.boolean({description: 'output command logs, do not execute ffmpeg', default: false}),
+    copyOnly: flags.boolean({description: 'do not re-encode, only copy the streams (lossless)', default: false}),
   }
 
   public debugCommand = false
+
+  public group = -1
+
+  public copyOnly = false
 
   async run() {
     const flags = this.parse(VMix).flags
@@ -46,6 +52,9 @@ class VMix extends Command {
     if (flags && flags.init) {
       return this.initConfigFile()
     }
+
+    if (flags && flags.group) this.group = parseInt(flags.group, 10)
+    if (flags && flags.copyOnly) this.copyOnly = flags.copyOnly
 
     // if nothing is passed in, assume the .vmix file will be used
     this.parseAndExecFfmpegAsync('.vmix')
@@ -92,7 +101,7 @@ class VMix extends Command {
       const filteredFiles = this._filterValidFiles(files)
       const lines: Array<string> = []
       _.forEach(filteredFiles, (file: string, idx: number) => {
-        lines.push(`${idx} ; ${file} ; ["0:00","0:00"]`)
+        lines.push(`${idx} ; ${file} ; ["0:00","0:00"] ; ["0:00","0:00"] ; ["0:00","0:00"]`)
       })
 
       fs.writeFile(`${process.cwd()}/.vmix`, lines.join('\n'), (err: Error) => {
@@ -131,70 +140,25 @@ class VMix extends Command {
    * @returns {Array.string[]} - command params
    */
   generateFfmpegCmd(configs: ConfigFileRow[]) {
+    // init variables
     const commands: Array<string[]> = []
+    let encodingParam = '-x265-params crf=25'
+    if (this.copyOnly) encodingParam = '-c:v copy'
 
     // group the configs by index
     const configByIndex = _.groupBy(configs, 'index')
 
     // now loop through each group, which can contain multiple files
-    _.forEach(configByIndex, (configs: ConfigFileRow[]) => {
+    _.forEach(configByIndex, (configs: ConfigFileRow[], groupIndex: string) => {
+      // if group is defined, and does not equal the current group index, skip to the next loop
+
+      if (this.group !== -1 && this.group !== parseInt(groupIndex, 10)) {
+        return true // skip this and go to the next loop
+      }
       // we want the inputs to be concatenated -- generate inputs
-      const inputParams: string[] = []
-      _.forEach(configs, (row: ConfigFileRow) => {
-        inputParams.push(`-i ${row.filename}`)
-      })
+      const inputParams = this._getInputParams(configs)
 
-      // this starts the LOOP inside the "GROUP", which can be multiple inputs
-      // stitched together, each with filename and timeframes.
-      // Currently only supports sequential stitching
-      /*
-        configs: [
-          1: [
-            {
-              filename: 'file1',
-              timeframes: { start, end }
-            },
-            {
-              filename: 'file2',
-              timeframes: { start, end }
-            }
-          ]
-        ]
-      */
-      // constants
-      const encodingParam = '-x265-params crf=25'
-
-      // variables to be generated inside the loop
-      let outputFilename = ''
-      let complexFilterTrims = ''
-      let complexFilterSuffix = ''
-      let filterIndex = 0
-      let inputFileIndex = 0
-      _.forEach(configs, (row: ConfigFileRow) => {
-        const fileExt = _.last(row.filename.split('.'))
-
-        // remove file ext
-        const filename = row.filename.replace(fileExt, '')
-        outputFilename += `${filename}`
-
-        // generate the splits
-        _.forEach(row.timeframes, (timeframe: TimeFrame) => {
-          const startSeconds = this._minToSeconds(timeframe.start)
-          const endSeconds = this._minToSeconds(timeframe.end)
-          if (startSeconds === 0 && endSeconds === 0) {
-            complexFilterTrims += `[${inputFileIndex}:v]trim=start=0,setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=start=0,asetpts=PTS-STARTPTS[a${filterIndex}];`
-          } else {
-            complexFilterTrims += `[${inputFileIndex}:v]trim=${startSeconds}:${endSeconds},setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=${startSeconds}:${endSeconds},asetpts=PTS-STARTPTS[a${filterIndex}];`
-          }
-          complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
-          filterIndex++
-        })
-        inputFileIndex++
-      })
-
-      // split and transcode
-      const finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
-      outputFilename += 'cut.h264.mp4'
+      const [finalFilterStr, outputFilename] = this._getComplexFilterStrings(configs)
 
       // assemble the final command string
       const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${outputFilename}"`, `${encodingParam}`]
@@ -212,7 +176,7 @@ class VMix extends Command {
 
   async execFfmpegAsync(command: Array<string[]>): Promise<void> {
     return new Bluebird((resolve: any) => {
-      this.log(clc.green('Executing command', command))
+      this.log(clc.green('Executing command', `ffmpeg ${command.join(' ')}`))
       const proc = spawn('ffmpeg', command, {
         shell: true,
       })
@@ -306,6 +270,73 @@ class VMix extends Command {
       this.log(clc.green('JSON Parsed'), clc.green(JSON.stringify(output, null, 4)))
     }
     return output
+  }
+
+  _getInputParams(configs: ConfigFileRow[]): string[] {
+    const inputParams: string[] = []
+    _.forEach(configs, (row: ConfigFileRow) => {
+      inputParams.push(`-i ${row.filename}`)
+    })
+    return inputParams
+  }
+
+  _getComplexFilterStrings(configs: ConfigFileRow[]) {
+    // variables to be generated inside the loop
+    let outputFilename = ''
+    let complexFilterTrims = ''
+    let complexFilterSuffix = ''
+    let filterIndex = 0
+    let inputFileIndex = 0
+
+    // this starts the LOOP inside the "GROUP", which can be multiple inputs
+    // stitched together, each with filename and timeframes.
+    // Currently only supports sequential stitching
+    /*
+        configs: [
+          1: [
+            {
+              filename: 'file1',
+              timeframes: [{ start, end }]
+            },
+            {
+              filename: 'file2',
+              timeframes: [{ start, end }]
+            }
+          ]
+        ]
+      */
+    _.forEach(configs, (row: ConfigFileRow) => {
+      const fileExt = _.last(row.filename.split('.'))
+
+      // remove file ext
+      const filename = row.filename.replace(fileExt, '')
+      outputFilename += `${filename}`
+
+      // generate the trim syntax
+      _.forEach(row.timeframes, (timeframe: TimeFrame) => {
+        const startSeconds = this._minToSeconds(timeframe.start)
+        const endSeconds = this._minToSeconds(timeframe.end)
+
+        // if the first timeframe is 0,0 set the trim=start=0, and exit out of this loop
+        if (startSeconds === 0 && endSeconds === 0) {
+          complexFilterTrims += `[${inputFileIndex}:v]trim=start=0,setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=start=0,asetpts=PTS-STARTPTS[a${filterIndex}];`
+          complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          filterIndex++
+          return false // this is to break the for loop
+        // eslint-disable-next-line no-else-return
+        } else {
+          complexFilterTrims += `[${inputFileIndex}:v]trim=${startSeconds}:${endSeconds},setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=${startSeconds}:${endSeconds},asetpts=PTS-STARTPTS[a${filterIndex}];`
+          complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          filterIndex++
+        }
+      })
+      inputFileIndex++
+    })
+
+    const finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
+    outputFilename += 'cut.h264.mp4'
+
+    return [finalFilterStr, outputFilename]
   }
 }
 
