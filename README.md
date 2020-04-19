@@ -11,6 +11,7 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 <!-- toc -->
 - [vmix](#vmix)
 - [Usage](#usage)
+- [.vmix Config File](#vmix-config-file)
 - [Requirements: ffmpeg](#requirements-ffmpeg)
 - [Why I built this](#why-i-built-this)
 - [Background](#background)
@@ -29,6 +30,16 @@ $ vmix
 transcodes all files in the folder w/ h264, at crf = 24 (medium quality)
 
 ```
+# .vmix Config File
+Here is an example of the .vmix file used as a configuration, for chopping and re-stitching videos
+```
+0 ; DJI_0069.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
+0 ; DJI_0070.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
+```
+* The first column is an index key. Videos w/ the same index will generate a single output file
+* The second column is the input filename, relative to the current path
+* The 3rd and subsequent columns are trim timeframes in minutes:seconds
+
 
 # Requirements: ffmpeg
 This package assumes you have access to **ffmpeg** from your commmand line.
@@ -74,12 +85,3 @@ ffmpeg -i edv_g24_2.mp4 -i short-video.mp4 -filter_complex "\
 [v0][a0][v1][a1][v2][a2]concat=n=3:v=1:a=1[outv][outa]" \
 -map "[outv]" -map "[outa]" output.mp4
 ```
-
-Here is an example of the .vmix file used as a configuration, for chopping and re-stitching videos
-```
-0 ; DJI_0069.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
-0 ; DJI_0070.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
-```
-* The first column is an index key. Videos w/ the same index will generate a single output file
-* The second column is the input filename, relative to the current path
-* The 3rd and subsequent columns are trim timeframes in minutes:seconds
