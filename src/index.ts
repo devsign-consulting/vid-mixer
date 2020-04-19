@@ -18,7 +18,7 @@ interface TimeFrame {
   end: string;
 }
 
-class Mp4Cut extends Command {
+class VMix extends Command {
   static description = 'Reads in a config file, cuts the files, and concats them back together'
 
   static examples = [
@@ -35,7 +35,7 @@ class Mp4Cut extends Command {
   public debugCommand = false
 
   async run() {
-    const flags = this.parse(Mp4Cut).flags
+    const flags = this.parse(VMix).flags
 
     this.debugCommand = flags && flags.debugCommand
 
@@ -47,8 +47,8 @@ class Mp4Cut extends Command {
       return this.initConfigFile()
     }
 
-    // if nothing is passed in, assume the .mp4cut file will be used
-    this.parseAndExecFfmpegAsync('.mp4cut')
+    // if nothing is passed in, assume the .vmix file will be used
+    this.parseAndExecFfmpegAsync('.vmix')
   }
 
   async parseAndExecFfmpegAsync(input: string) {
@@ -73,12 +73,12 @@ class Mp4Cut extends Command {
   }
 
   initConfigFile() {
-    this.log(clc.green('Creating .mp4cut config file'))
+    this.log(clc.green('Creating .vmix config file'))
     try {
-      const existingConfig = fs.readFileSync(`${process.cwd()}/.mp4cut`, 'utf8')
+      const existingConfig = fs.readFileSync(`${process.cwd()}/.vmix`, 'utf8')
       this.log('existingConfig', existingConfig)
       if (existingConfig) {
-        this.error('.mp4cut config file already exists')
+        this.error('.vmix config file already exists')
         return
       }
     } catch (error) {
@@ -95,15 +95,15 @@ class Mp4Cut extends Command {
         lines.push(`${idx} ; ${file} ; ["0:00","0:00"]`)
       })
 
-      fs.writeFile(`${process.cwd()}/.mp4cut`, lines.join('\n'), (err: Error) => {
+      fs.writeFile(`${process.cwd()}/.vmix`, lines.join('\n'), (err: Error) => {
         if (err) this.error(err)
-        this.log(clc.green('Created init file .mp4cut with the following files', filteredFiles))
+        this.log(clc.green('Created init file .vmix with the following files', filteredFiles))
       })
     })
   }
 
   _filterValidFiles(files: Array<string>): Array<string> {
-    const exclude = ['.h264', '.mp4cut']
+    const exclude = ['.h264', '.vmix']
     const include = ['.mp4']
 
     return _.filter(files, (f: string) => {
@@ -198,7 +198,7 @@ class Mp4Cut extends Command {
 
       // assemble the final command string
       const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${outputFilename}"`, `${encodingParam}`]
-      
+
       const fileExistPath = `${outputFilename}`
       if (fs.existsSync(`${fileExistPath}`)) {
         this.warn(clc.red(`Skipping file ${outputFilename}, because it already exists`))
@@ -261,7 +261,7 @@ class Mp4Cut extends Command {
         delimiter: ';',
       }).fromFile(filePath)
     } catch (error) {
-      this.log(clc.red(`${inputFileName} config not found. Try running mp4-cut cut-concat --init to generate a config`))
+      this.log(clc.red(`${inputFileName} config not found. Try running vmix --init to generate a config`))
     }
 
     // flatten the array
@@ -309,4 +309,4 @@ class Mp4Cut extends Command {
   }
 }
 
-export = Mp4Cut
+export = VMix
