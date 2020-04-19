@@ -1,0 +1,60 @@
+{
+  "name": "mp4-cut",
+  "description": "utility to cut and concat media files, and encodes h264 based on config",
+  "version": "0.1.0",
+  "author": "Wenhao Liu",
+  "bin": {
+    "mp4-cut": "./bin/run"
+  },
+  "bugs": "https://github.com/mp4-cut/mp4-cut/issues",
+  "dependencies": {
+    "@oclif/command": "^1.5.19",
+    "@oclif/config": "^1.15.1",
+    "@oclif/plugin-help": "^2.2.3",
+    "bluebird": "^3.7.2",
+    "cli-color": "^2.0.0",
+    "csvtojson": "^2.0.10",
+    "lodash": "^4.17.15",
+    "tslib": "^1.11.1"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1.22.2",
+    "@oclif/test": "^1.2.5",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^10.17.20",
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "eslint-config-oclif": "^3.1.0",
+    "eslint-config-oclif-typescript": "^0.1.0",
+    "mocha": "^5.2.0",
+    "nyc": "^14.1.1",
+    "rimraf": "^3.0.2",
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/lib"
+  ],
+  "homepage": "https://github.com/mp4-cut/mp4-cut",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "oclif": {
+    "bin": "mp4-cut"
+  },
+  "repository": "mp4-cut/mp4-cut",
+  "scripts": {
+    "posttest": "eslint . --ext .ts --config .eslintrc",
+    "prepack": "rimraf lib && tsc -b && oclif-dev readme",
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md"
+  },
+  "types": "lib/index.d.ts"
+}
