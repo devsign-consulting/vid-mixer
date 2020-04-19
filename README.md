@@ -4,9 +4,9 @@ vmix
 Executes ffmpeg in order to cut and concatenate multiple video files together, driven by a config file.  Useful for processing cell phone / GoPro videos
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/vmix.svg)](https://npmjs.org/package/vmix)
-[![Downloads/week](https://img.shields.io/npm/dw/vmix.svg)](https://npmjs.org/package/vmix)
-[![License](https://img.shields.io/npm/l/vmix.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/vid-mixer.svg)](https://npmjs.org/package/vid-mixer)
+[![Downloads/week](https://img.shields.io/npm/dw/vid-mixer.svg)](https://npmjs.org/package/vid-mixer)
+[![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
 - [vmix](#vmix)
