@@ -9,13 +9,12 @@ Trims and concatenates multiple video files together, using **ffmpeg** and an ea
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [vmix](#vmix)
-- [Why I built this](#why-i-built-this)
-- [Background](#background)
-- [Prerequisites](#prerequisites)
-- [Installation and Usage](#installation-and-usage)
-- [.vmix Config File](#vmix-config-file)
-- [Requirements: ffmpeg](#requirements-ffmpeg)
+* [Why I built this](#why-i-built-this)
+* [Background](#background)
+* [Prerequisites](#prerequisites)
+* [Installation and Usage](#installation-and-usage)
+* [.vmix Config File](#vmix-config-file)
+* [Requirements: ffmpeg](#requirements-ffmpeg)
 <!-- tocstop -->
 
 # Why I built this
