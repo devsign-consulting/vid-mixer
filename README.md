@@ -9,33 +9,38 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-* [Usage](#usage)
-* [.vmix Config File](#vmix-config-file)
-* [Requirements: ffmpeg](#requirements-ffmpeg)
-* [Why I built this](#why-i-built-this)
-* [Background](#background)
+- [vmix](#vmix)
+- [Why I built this](#why-i-built-this)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [.vmix Config File](#vmix-config-file)
+- [Requirements: ffmpeg](#requirements-ffmpeg)
+- [Background](#background)
 <!-- tocstop -->
-# Usage
-Make sure you install ffmpeg and exiftool:
+
+# Why I built this
+I have a lot of .mp4 and .mov files from a lot of devices: **Android**, **iOS**, **GoPro**, **DJI Mavic**, **Osmo**, etc stored on my hard drive.  They take up a lot of space, and also contain a lot of un-usable footage.
+
+I wanted a single utility that achieves the following:
+* Transcodes video to h.264 on the command line w/o having to go into Premier
+* At the same time, have the ability to cut clips out of files, and re-stitch them back together to form a single output.
+
+This allows me to preserve the parts of videos that I like, and significantly reduce file size easily via configuration from the command line without having to touch Adobe Premier. I take this "first pass", and then put it into Adobe Premier for further editing if needed.
+
+# Prerequisites
+Make sure you install **ffmpeg** and **exiftool**:
 * https://www.ffmpeg.org/download.html - executable "ffmpeg" should work from the command line.
 * https://exiftool.org/ - executable "exiftool" should work from the command line.  This is used to restore the EXIF created date of the media file upon conversion
+
+# Installation
 
 
 <!-- usage -->
 ```sh-session
 $ npm install -g vid-mixer
-$ vmix COMMAND
-running command...
-$ vmix (-v|--version|version)
-vid-mixer/0.2.0 win32-x64 node-v10.15.0
-$ vmix --help [COMMAND]
-USAGE
-  $ vmix COMMAND
-...
 ```
-<!-- usagestop -->
+
 ```sh-session
-$ npm install -g vid-mixer
 $ cd /into-folder-with-mp4-files/
 
 $ vmix --init
@@ -44,33 +49,34 @@ use text editor to edit file (by default, it will transcode all files in the fol
 
 $ vmix
 transcodes all files in the folder w/ h264, at crf = 24 (medium quality)
-
 ```
+<!-- usagestop -->
 # .vmix Config File
 Here is an example of the .vmix file used as a configuration, for chopping and re-stitching videos
 ```
-0 ; DJI_0069.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
-0 ; DJI_0070.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
-```
-* The first column is an index key. Videos w/ the same index will generate a single output file
-* The second column is the input filename, relative to the current path
-* The 3rd and subsequent columns are trim timeframes in minutes:seconds
+:timecodes
+1 ; DJI_0111.MP4 ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00
+1 ; DJI_0112.MP4 ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00
+// the "1" is a group key, which groups both files to a single output
 
+2 ; DJI_0113.MP4 ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00
+
+:groupFilenames
+1 ; My custom filename
+2 ; [delete me to override with your own filename (including brackets)]
+```
+**:timecodes**
+* The first column is a **GROUP KEY**. Videos w/ the same index will be combined to generate a single output file
+* The second column is the input filename, relative to the current path
+* The 3rd and subsequent columns are trim timeframes in **minutes** : **seconds**
+
+**:groupFilenames**
+* Set custom filename output for each group.
 
 # Requirements: ffmpeg
 This package assumes you have access to **ffmpeg** from your commmand line.
 
 Type **ffmpeg -h** from a terminal, and make sure it exists.  Otherwise, follow instructions to install ffmpeg from google
-
-# Why I built this
-I have a lot of .mp4 and .mov files from a lot of devices: **Android**, **iOS**, **GoPro**, **DJI Mavic**, **Osmo**, etc stored on my hard drive.  They take up a lot of space, and also contain a lot of un-usable footage.
-
-I wanted a single utility that achieves the following:
-* Transcodes video to h.264 on the command line w/ an easy interface
-* At the same time, have the ability to cut clips out of files, and re-stitch them back together to form a single output.
-
-This allows me to rapidly preserve the parts of videos that I like, and significantly reduce file size. I take this "first pass", and then put it into Adobe Premier for further editing if needed.
-
 
 # Background
 Here is an example of an ffmpeg command that takes an input file, chops it up, and re-stitches the segments together, taken from
