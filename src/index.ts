@@ -104,7 +104,7 @@ class VMix extends Command {
 
   _filterValidFiles(files: Array<string>): Array<string> {
     const exclude = ['.h264', '.vmix']
-    const include = ['.mp4']
+    const include = ['.mp4', '.mov', '.avi']
 
     return _.filter(files, (f: string) => {
       let match = false
