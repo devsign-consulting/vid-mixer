@@ -9,13 +9,12 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [vmix](#vmix)
-- [Why I built this](#why-i-built-this)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [.vmix Config File](#vmix-config-file)
-- [Requirements: ffmpeg](#requirements-ffmpeg)
-- [Background](#background)
+* [Why I built this](#why-i-built-this)
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [.vmix Config File](#vmix-config-file)
+* [Requirements: ffmpeg](#requirements-ffmpeg)
+* [Background](#background)
 <!-- tocstop -->
 
 # Why I built this
@@ -38,17 +37,14 @@ Make sure you install **ffmpeg** and **exiftool**:
 <!-- usage -->
 ```sh-session
 $ npm install -g vid-mixer
-```
-
-```sh-session
-$ cd /into-folder-with-mp4-files/
-
-$ vmix --init
-initializes .vmix init file
-use text editor to edit file (by default, it will transcode all files in the folder to .h264)
-
-$ vmix
-transcodes all files in the folder w/ h264, at crf = 24 (medium quality)
+$ vmix COMMAND
+running command...
+$ vmix (-v|--version|version)
+vid-mixer/0.2.1 win32-x64 node-v10.15.0
+$ vmix --help [COMMAND]
+USAGE
+  $ vmix COMMAND
+...
 ```
 <!-- usagestop -->
 # .vmix Config File
