@@ -9,17 +9,28 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [vmix](#vmix)
-- [Usage](#usage)
-- [.vmix Config File](#vmix-config-file)
-- [Requirements: ffmpeg](#requirements-ffmpeg)
-- [Why I built this](#why-i-built-this)
-- [Background](#background)
+* [Usage](#usage)
+* [.vmix Config File](#vmix-config-file)
+* [Requirements: ffmpeg](#requirements-ffmpeg)
+* [Why I built this](#why-i-built-this)
+* [Background](#background)
 <!-- tocstop -->
 # Usage
 Make sure you install ffmpeg: 
 https://www.ffmpeg.org/download.html, and that the executable "ffmpeg" works from the command line.  Then, perform the following install steps
 <!-- usage -->
+```sh-session
+$ npm install -g vid-mixer
+$ vmix COMMAND
+running command...
+$ vmix (-v|--version|version)
+vid-mixer/0.1.0 win32-x64 node-v10.15.0
+$ vmix --help [COMMAND]
+USAGE
+  $ vmix COMMAND
+...
+```
+<!-- usagestop -->
 ```sh-session
 $ npm install -g vid-mixer
 $ cd /into-folder-with-mp4-files/
