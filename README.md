@@ -9,15 +9,19 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-* [Usage](#usage)
-* [.vmix Config File](#vmix-config-file)
-* [Requirements: ffmpeg](#requirements-ffmpeg)
-* [Why I built this](#why-i-built-this)
-* [Background](#background)
+- [vmix](#vmix)
+- [Usage](#usage)
+- [.vmix Config File](#vmix-config-file)
+- [Requirements: ffmpeg](#requirements-ffmpeg)
+- [Why I built this](#why-i-built-this)
+- [Background](#background)
 <!-- tocstop -->
 # Usage
-Make sure you install ffmpeg: 
-https://www.ffmpeg.org/download.html, and that the executable "ffmpeg" works from the command line.  Then, perform the following install steps
+Make sure you install ffmpeg and exiftool:
+* https://www.ffmpeg.org/download.html - executable "ffmpeg" should work from the command line.
+* https://exiftool.org/ - executable "exiftool" should work from the command line.  This is used to restore the EXIF created date of the media file upon conversion
+
+
 <!-- usage -->
 ```sh-session
 $ npm install -g vid-mixer
