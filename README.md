@@ -9,12 +9,11 @@ Executes ffmpeg in order to cut and concatenate multiple video files together, d
 [![License](https://img.shields.io/npm/l/vid-mixer.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [vmix](#vmix)
-- [Usage](#usage)
-- [.vmix Config File](#vmix-config-file)
-- [Requirements: ffmpeg](#requirements-ffmpeg)
-- [Why I built this](#why-i-built-this)
-- [Background](#background)
+* [Usage](#usage)
+* [.vmix Config File](#vmix-config-file)
+* [Requirements: ffmpeg](#requirements-ffmpeg)
+* [Why I built this](#why-i-built-this)
+* [Background](#background)
 <!-- tocstop -->
 # Usage
 Make sure you install ffmpeg and exiftool:
@@ -28,7 +27,7 @@ $ npm install -g vid-mixer
 $ vmix COMMAND
 running command...
 $ vmix (-v|--version|version)
-vid-mixer/0.1.1 win32-x64 node-v10.15.0
+vid-mixer/0.2.0 win32-x64 node-v10.15.0
 $ vmix --help [COMMAND]
 USAGE
   $ vmix COMMAND
