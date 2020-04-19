@@ -1,40 +1,52 @@
-mp4-cut
+vmix
 =======
 
-utility to cut and concat media files, and encodes h264 based on config
+Executes ffmpeg in order to cut and concatenate multiple video files together, driven by a config file.  Useful for processing cell phone / GoPro videos
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/mp4-cut.svg)](https://npmjs.org/package/mp4-cut)
-[![Downloads/week](https://img.shields.io/npm/dw/mp4-cut.svg)](https://npmjs.org/package/mp4-cut)
-[![License](https://img.shields.io/npm/l/mp4-cut.svg)](https://github.com/mp4-cut/mp4-cut/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/vmix.svg)](https://npmjs.org/package/vmix)
+[![Downloads/week](https://img.shields.io/npm/dw/vmix.svg)](https://npmjs.org/package/vmix)
+[![License](https://img.shields.io/npm/l/vmix.svg)](https://github.com/devsign-consulting/vid-mixer/blob/master/package.json)
 
 <!-- toc -->
-- [mp4-cut](#mp4-cut)
+- [vmix](#vmix)
 - [Usage](#usage)
-- [Commands](#commands)
+- [Requirements: ffmpeg](#requirements-ffmpeg)
+- [Why I built this](#why-i-built-this)
 - [Background](#background)
 <!-- tocstop -->
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g mp4-cut
-$ mp4-cut COMMAND
-running command...
-$ mp4-cut (-v|--version|version)
-mp4-cut/0.1.0 win32-x64 node-v10.15.0
-$ mp4-cut --help [COMMAND]
-USAGE
-  $ mp4-cut COMMAND
-...
-```
-<!-- usagestop -->
-# Commands
-<!-- commands -->
+$ npm install -g vid-mixer
+$ cd /into-folder-with-mp4-files/
 
-<!-- commandsstop -->
+$ vmix --init
+initializes .vmix init file
+use text editor to edit file (by default, it will transcode all files in the folder to .h264)
+
+$ vmix
+transcodes all files in the folder w/ h264, at crf = 24 (medium quality)
+
+```
+
+# Requirements: ffmpeg
+This package assumes you have access to **ffmpeg** from your commmand line.
+
+Type **ffmpeg -h** from a terminal, and make sure it exists.  Otherwise, follow instructions to install ffmpeg from google
+
+# Why I built this
+I have a lot of .mp4 and .mov files from a lot of devices: **Android**, **iOS**, **GoPro**, **DJI Mavic**, **Osmo**, etc stored on my hard drive.  They take up a lot of space, and also contain a lot of un-usable footage.
+
+I wanted a single utility that achieves the following:
+* Transcodes video to h.264 on the command line w/ an easy interface
+* At the same time, have the ability to cut clips out of files, and re-stitch them back together to form a single output.
+
+This allows me to rapidly preserve the parts of videos that I like, and significantly reduce file size. I take this "first pass", and then put it into Adobe Premier for further editing if needed.
+
 
 # Background
-Here is an example of a file that takes an input file, chops it up, and re-stitches the segments together, taken from
+Here is an example of an ffmpeg command that takes an input file, chops it up, and re-stitches the segments together, taken from
 
 https://superuser.com/questions/1229945/ffmpeg-split-video-and-merge-back
 
@@ -63,8 +75,11 @@ ffmpeg -i edv_g24_2.mp4 -i short-video.mp4 -filter_complex "\
 -map "[outv]" -map "[outa]" output.mp4
 ```
 
-Here is an example of the .csv file used as a configuration
+Here is an example of the .vmix file used as a configuration, for chopping and re-stitching videos
 ```
-DJI_0069.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
-DJI_0070.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
+0 ; DJI_0069.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
+0 ; DJI_0070.MP4 ; ["0:00","0:18"] ; ["0:30","0:52"]
 ```
+* The first column is an index key. Videos w/ the same index will generate a single output file
+* The second column is the input filename, relative to the current path
+* The 3rd and subsequent columns are trim timeframes in minutes:seconds

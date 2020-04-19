@@ -1,12 +1,12 @@
 {
-  "name": "mp4-cut",
+  "name": "vid-mixer",
   "description": "utility to cut and concat media files, and encodes h264 based on config",
   "version": "0.1.0",
   "author": "Wenhao Liu",
   "bin": {
-    "mp4-cut": "./bin/run"
+    "vmix": "./bin/run"
   },
-  "bugs": "https://github.com/mp4-cut/mp4-cut/issues",
+  "bugs": "https://github.com/devsign-consulting/vid-mixer/issues",
   "dependencies": {
     "@oclif/command": "^1.5.19",
     "@oclif/config": "^1.15.1",
@@ -40,16 +40,19 @@
     "/bin",
     "/lib"
   ],
-  "homepage": "https://github.com/mp4-cut/mp4-cut",
+  "homepage": "https://github.com/devsign-consulting/vid-mixer",
   "keywords": [
-    "oclif"
+    "oclif",
+    "ffmpeg",
+    "video",
+    "h264"
   ],
   "license": "MIT",
   "main": "lib/index.js",
   "oclif": {
-    "bin": "mp4-cut"
+    "bin": "vmix"
   },
-  "repository": "mp4-cut/mp4-cut",
+  "repository": "devsign-consulting/vid-mixer",
   "scripts": {
     "posttest": "eslint . --ext .ts --config .eslintrc",
     "prepack": "rimraf lib && tsc -b && oclif-dev readme",
