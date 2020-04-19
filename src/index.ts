@@ -101,29 +101,25 @@ class VMix extends Command {
         return
       }
     } catch (error) {
-      return
+      // do nothing
     }
 
-    this.log('4')
     fs.readdir(process.cwd(), (err: Error, files: Array<string>) => {
-      this.log('5')
       if (err) {
-        this.log('6')
         this.error('invalid folder')
       }
-      this.log('7')
+
       const filteredFiles = this._filterValidFiles(files)
       const timecodes: Array<string> = [':timecodes']
       const groupFilenames: Array<string> = [':groupFilenames']
 
       _.forEach(filteredFiles, (file: string, idx: number) => {
-        timecodes.push(`${idx} ; ${file} ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00]`)
+        timecodes.push(`${idx} ; ${file} ; 0:00,0:00 ; 0:00,0:00 ; 0:00,0:00`)
         groupFilenames.push(`${idx} ; ${this.fileOverridePlaceholder}`)
       })
 
       const lines = [...timecodes, ...groupFilenames]
 
-      this.log('8')
       fs.writeFile(`${process.cwd()}/.vmix`, lines.join('\n'), (err: Error) => {
         if (err) {
           this.error(err)
@@ -135,7 +131,7 @@ class VMix extends Command {
   }
 
   _filterValidFiles(files: Array<string>): Array<string> {
-    const exclude = ['.h264', '.vmix']
+    const exclude = ['.vmix']
     const include = ['.mp4', '.mov', '.avi']
 
     return _.filter(files, (f: string) => {
