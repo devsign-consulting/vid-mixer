@@ -1,5 +1,8 @@
 import {Command, flags} from '@oclif/command'
 
+// todo: incorporate fprobe to check video for audio stream: fprobe -i DJI_0111.cut.h264.mp4 -show_streams -select_streams a -loglevel error
+// returns nothing if no streams
+
 const Bluebird = require('bluebird')
 const csv = require('csvtojson')
 const _ = require('lodash')
@@ -9,6 +12,7 @@ const fs = require('fs')
 
 interface ConfigFileRow {
   filename: string;
+  audioStream?: boolean;
   outputFilename?: string;
   index: number;
   timeframes: TimeFrame[];
@@ -70,6 +74,9 @@ class VMix extends Command {
     try {
       const jsonConfig = await this.configToJsonAsync(input)
       this.log(clc.green('File parse successful'))
+
+      // check which streams have audio, and decorates config with audioStream: true
+      await this.checkAudioStream(jsonConfig)
 
       // generate the ffmpeg commands
       const [ffmpegCommands, exifCommands] = this.generateExecCommands(jsonConfig)
@@ -200,29 +207,29 @@ class VMix extends Command {
     return [commands, exifCommands]
   }
 
-  async execAsync(command: string, params: string[]): Promise<void> {
-    return new Bluebird((resolve: any) => {
-      this.log(clc.green('Executing command', `${command} ${params.join(' ')}`))
+  async execAsync(command: string, params: string[], silent = false): Promise<string> {
+    return new Bluebird((resolve: any, reject: any) => {
+      if (!silent) this.log(clc.green('Executing command', `${command} ${params.join(' ')}`))
       const proc = spawn(command, params, {
         shell: true,
       })
 
+      proc.stdout.on('data', (data: string) => {
+        resolve(data)
+      })
+
       proc.stderr.on('data', (data: string) => {
-        this.log(`${data}`)
+        if (!silent) this.log(`${data}`)
+        resolve(data)
       })
 
       proc.on('error', (code: string) => {
-        this.log(`spawn error: ${code}`)
+        if (!silent) this.log(`spawn error: ${code}`)
         resolve(code)
       })
 
       proc.on('close', (code: string) => {
-        this.log(`spawn child process closed with code ${code}`)
-        resolve(code)
-      })
-
-      proc.on('exit', (code: string) => {
-        this.log(`spawn child process exited with code ${code}`)
+        if (!silent) this.log(`spawn child process closed with code ${code}`)
         resolve(code)
       })
     })
@@ -410,6 +417,22 @@ class VMix extends Command {
 
     const finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
     return [finalFilterStr, outputFilename]
+  }
+
+  async checkAudioStream(config: ConfigFileRow[]): Promise<void> {
+    return Bluebird.each(config, async (row: ConfigFileRow) => {
+      const inputFile = row.filename
+      try {
+        const response: string = await this.execAsync('ffprobe', [`-i ${inputFile}`, '-show_streams', '-select_streams a', '-loglevel error'], true)
+        if (response && response.indexOf('STREAM') !== -1) {
+          row.audioStream = true
+        } else {
+          row.audioStream = false
+        }
+      } catch (error) {
+        this.log('error', error)
+      }
+    })
   }
 }
 
