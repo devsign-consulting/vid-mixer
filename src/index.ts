@@ -36,7 +36,6 @@ class VMix extends Command {
     init: flags.boolean({description: 'generate config file, with all files in folder', default: false}),
     group: flags.string({description: 'pass in a group number (e.g. 1, 2, 3, etc) to only process that group'}),
     debugCommand: flags.boolean({description: 'output command logs, do not execute ffmpeg', default: false}),
-    copyOnly: flags.boolean({description: 'do not re-encode, only copy the streams (lossless)', default: false}),
   }
 
   public outputFileSuffix = '.cut.h264.mp4'
@@ -46,8 +45,6 @@ class VMix extends Command {
   public debugCommand = false
 
   public group = -1
-
-  public copyOnly = false
 
   async run() {
     const flags = this.parse(VMix).flags
@@ -63,7 +60,6 @@ class VMix extends Command {
     }
 
     if (flags && flags.group) this.group = parseInt(flags.group, 10)
-    if (flags && flags.copyOnly) this.copyOnly = flags.copyOnly
 
     // if nothing is passed in, assume the .vmix file will be used
     this.parseAndExecFfmpegAsync('.vmix')
@@ -170,8 +166,7 @@ class VMix extends Command {
     const commands: Array<string[]> = []
     const exifCommands: Array<string[]> = []
 
-    let encodingParam = '-x265-params crf=25'
-    if (this.copyOnly) encodingParam = '-c:v copy'
+    const encodingParam = ['-c:v libx264', '-preset medium']
 
     // group the configs by index
     const configByIndex = _.groupBy(configs, 'index')
@@ -193,7 +188,7 @@ class VMix extends Command {
       const finalOutputFilename = overrideFilename ? `${overrideFilename}.mp4` : `${outputFilename}${this.outputFileSuffix}`
 
       // assemble the final command string
-      const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${finalOutputFilename}"`, `${encodingParam}`]
+      const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${finalOutputFilename}"`, ...encodingParam]
 
       const fileExistPath = `${finalOutputFilename}`
       if (fs.existsSync(`${fileExistPath}`)) {
