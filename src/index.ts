@@ -396,6 +396,7 @@ class VMix extends Command {
 
       // generate the trim syntax
       _.forEach(row.timeframes, (timeframe: TimeFrame) => {
+        if (_.isEmpty(timeframe.start) || _.isEmpty(timeframe.end)) return true
         const startSeconds = this._minToSeconds(timeframe.start)
         const endSeconds = this._minToSeconds(timeframe.end)
 
