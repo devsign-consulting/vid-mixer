@@ -38,7 +38,7 @@ class VMix extends Command {
     debugCommand: flags.boolean({description: 'output command logs, do not execute ffmpeg', default: false}),
   }
 
-  public outputFileSuffix = '.cut.h264.mp4'
+  public outputFileSuffix = 'cut.h264.mp4'
 
   public fileOverridePlaceholder = '[delete me to override with your own filename (including brackets)]'
 
@@ -166,7 +166,7 @@ class VMix extends Command {
     const commands: Array<string[]> = []
     const exifCommands: Array<string[]> = []
 
-    const encodingParam = ['-c:v libx264', '-preset medium']
+    const encodingParam = ['-c:v libx264', '-preset medium', '-crf 20']
 
     // group the configs by index
     const configByIndex = _.groupBy(configs, 'index')
@@ -181,14 +181,19 @@ class VMix extends Command {
       // we want the inputs to be concatenated -- generate inputs
       const inputParams = this._getInputParams(configs)
 
-      const [finalFilterStr, outputFilename] = this._getComplexFilterStrings(configs)
+      const [finalFilterStr, outputFilename, noAudio] = this._getComplexFilterStrings(configs)
 
       // see if there's an override filename defined on the group level
       const overrideFilename = _.get(configs[0], 'outputFilename')
       const finalOutputFilename = overrideFilename ? `${overrideFilename}.mp4` : `${outputFilename}${this.outputFileSuffix}`
 
       // assemble the final command string
-      const commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', `"${finalOutputFilename}"`, ...encodingParam]
+      let commandDao
+      if (noAudio) {
+        commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', `"${finalOutputFilename}"`, ...encodingParam]
+      } else {
+        commandDao = [...inputParams, `-filter_complex "${finalFilterStr}"`, '-map "[outv]"', '-map "[outa]"', ...encodingParam, `"${finalOutputFilename}"`]
+      }
 
       const fileExistPath = `${finalOutputFilename}`
       if (fs.existsSync(`${fileExistPath}`)) {
@@ -344,7 +349,7 @@ class VMix extends Command {
       if (configIndexMatches.length > 0) {
         const groupFilename = _.trim(row[1])
         if (groupFilename !== this.fileOverridePlaceholder)
-        configIndexMatches[0].outputFilename = groupFilename
+          configIndexMatches[0].outputFilename = groupFilename
       }
     }
   }
@@ -352,7 +357,7 @@ class VMix extends Command {
   _getInputParams(configs: ConfigFileRow[]): string[] {
     const inputParams: string[] = []
     _.forEach(configs, (row: ConfigFileRow) => {
-      inputParams.push(`-i ${row.filename}`)
+      inputParams.push(`-i "${row.filename}"`)
     })
     return inputParams
   }
@@ -387,7 +392,7 @@ class VMix extends Command {
 
       // remove file ext
       const filename = row.filename.replace(`.${fileExt}`, '')
-      outputFilename += `${filename}`
+      outputFilename += `${filename}.`
 
       // generate the trim syntax
       _.forEach(row.timeframes, (timeframe: TimeFrame) => {
@@ -396,22 +401,50 @@ class VMix extends Command {
 
         // if the first timeframe is 0,0 set the trim=start=0, and exit out of this loop
         if (startSeconds === 0 && endSeconds === 0) {
-          complexFilterTrims += `[${inputFileIndex}:v]trim=start=0,setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=start=0,asetpts=PTS-STARTPTS[a${filterIndex}];`
-          complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          const videoFilter = `[${inputFileIndex}:v]trim=start=0,setpts=PTS-STARTPTS[v${filterIndex}];`
+          const audioFilter = `[${inputFileIndex}:a]atrim=start=0,asetpts=PTS-STARTPTS[a${filterIndex}];`
+          if (row.audioStream) { 
+            complexFilterTrims += `${videoFilter}${audioFilter}`
+            complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          } else {
+            complexFilterTrims += `${videoFilter}`
+            complexFilterSuffix += `[v${filterIndex}]`
+          }
+
           filterIndex++
           return false // this is to break the for loop
         // eslint-disable-next-line no-else-return
         } else {
-          complexFilterTrims += `[${inputFileIndex}:v]trim=${startSeconds}:${endSeconds},setpts=PTS-STARTPTS[v${filterIndex}];[${inputFileIndex}:a]atrim=${startSeconds}:${endSeconds},asetpts=PTS-STARTPTS[a${filterIndex}];`
-          complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          const videoFilter = `[${inputFileIndex}:v]trim=${startSeconds}:${endSeconds},setpts=PTS-STARTPTS[v${filterIndex}];`
+          const audioFilter =  `[${inputFileIndex}:a]atrim=${startSeconds}:${endSeconds},asetpts=PTS-STARTPTS[a${filterIndex}];`
+
+          if (row.audioStream) {
+            complexFilterTrims += `${videoFilter}${audioFilter}`
+            complexFilterSuffix += `[v${filterIndex}][a${filterIndex}]`
+          } else {
+            complexFilterTrims += `${videoFilter}`
+            complexFilterSuffix += `[v${filterIndex}]`
+          }
           filterIndex++
         }
       })
       inputFileIndex++
     })
 
-    const finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
-    return [finalFilterStr, outputFilename]
+    let finalFilterStr
+    // if one of the clips has no audio, then the concat has no audio. I haven't figured out how to concat
+    // videos that have videos and ones that do not.
+    const noAudio = _.filter(configs, {audioStream: false}).length > 0
+    if (noAudio) {
+      // no audio
+      finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1[outv]`
+    } else {
+      // has audio
+      finalFilterStr = `${complexFilterTrims}${complexFilterSuffix} concat=n=${filterIndex}:v=1:a=1[outv][outa]`
+    }
+
+    // report noAudio flag back to calling function
+    return [finalFilterStr, outputFilename, noAudio]
   }
 
   async checkAudioStream(config: ConfigFileRow[]): Promise<void> {
