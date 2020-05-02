@@ -1,7 +1,7 @@
 {
   "name": "vid-mixer",
   "description": "utility to cut and concat media files, and encodes h264 based on config",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": "Wenhao Liu",
   "bin": {
     "vmix": "./bin/run"
