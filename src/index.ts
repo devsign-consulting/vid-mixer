@@ -452,7 +452,7 @@ class VMix extends Command {
     return Bluebird.each(config, async (row: ConfigFileRow) => {
       const inputFile = row.filename
       try {
-        const response: string = await this.execAsync('ffprobe', [`-i ${inputFile}`, '-show_streams', '-select_streams a', '-loglevel error'], true)
+        const response: string = await this.execAsync('ffprobe', [`-i "${inputFile}"`, '-show_streams', '-select_streams a', '-loglevel error'], false)
         if (response && response.indexOf('STREAM') !== -1) {
           row.audioStream = true
         } else {
